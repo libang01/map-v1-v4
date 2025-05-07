@@ -1,20 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { getTeams, getPlayers } from '../utils/storage';
 
 const TeamsScreen = ({ navigation }) => {
-  // Mock data for teams
-  const [teams, setTeams] = useState([
-    { id: '1', name: 'Windhoek Hockey Club', category: 'Men', division: 'Premier', players: 18 },
-    { id: '2', name: 'Coastal Hockey Club', category: 'Women', division: 'Premier', players: 16 },
-    { id: '3', name: 'University of Namibia', category: 'Men', division: 'First', players: 20 },
-    { id: '4', name: 'Namibia Defense Force', category: 'Women', division: 'First', players: 15 },
-    { id: '5', name: 'Swakopmund Hockey Club', category: 'Men', division: 'Premier', players: 17 },
-  ]);
+  const [teams, setTeams] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [playerCounts, setPlayerCounts] = useState({});
+  
+  // Load teams from storage
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const storedTeams = await getTeams();
+        setTeams(storedTeams);
+        
+        // Load player counts for each team
+        const storedPlayers = await getPlayers();
+        const counts = {};
+        storedPlayers.forEach(player => {
+          if (player.teamId) {
+            counts[player.teamId] = (counts[player.teamId] || 0) + 1;
+          }
+        });
+        setPlayerCounts(counts);
+      } catch (error) {
+        console.error('Error loading teams:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadTeams();
+  }, []);
+  
+  // Refresh teams when navigating back to this screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      try {
+        setIsLoading(true);
+        const storedTeams = await getTeams();
+        setTeams(storedTeams);
+        
+        // Refresh player counts
+        const storedPlayers = await getPlayers();
+        const counts = {};
+        storedPlayers.forEach(player => {
+          if (player.teamId) {
+            counts[player.teamId] = (counts[player.teamId] || 0) + 1;
+          }
+        });
+        setPlayerCounts(counts);
+      } catch (error) {
+        console.error('Error refreshing teams:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, [navigation]);
 
   const renderTeamItem = ({ item }) => (
     <Card style={styles.teamCard} onPress={() => navigation.navigate('TeamDetails', { teamId: item.id })}>
@@ -31,7 +80,7 @@ const TeamsScreen = ({ navigation }) => {
         </View>
         <View style={styles.infoItem}>
           <Ionicons name="people-outline" size={16} color={Colors.primary} />
-          <Text style={styles.infoText}>{item.players} Players</Text>
+          <Text style={styles.infoText}>{playerCounts[item.id] || 0} Players</Text>
         </View>
       </View>
     </Card>
@@ -49,17 +98,48 @@ const TeamsScreen = ({ navigation }) => {
         />
       </View>
       
-      <FlatList
-        data={teams}
-        keyExtractor={item => item.id}
-        renderItem={renderTeamItem}
-        contentContainerStyle={styles.list}
-      />
+      {isLoading ? (
+        <View style={styles.centerContent}>
+          <Text>Loading teams...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={teams}
+          keyExtractor={item => item.id}
+          renderItem={renderTeamItem}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No teams found</Text>
+              <Button
+                title="Register New Team"
+                onPress={() => navigation.navigate('TeamRegistration')}
+              />
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.secondary,
+    marginBottom: 20,
+  },
   screen: {
     flex: 1,
     backgroundColor: Colors.lightGray,

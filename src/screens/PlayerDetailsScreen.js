@@ -1,36 +1,106 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, ScrollView, Image, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { getPlayers, getTeams } from '../utils/storage';
 
 const PlayerDetailsScreen = ({ route, navigation }) => {
   const { playerId } = route.params;
   
-  // Mock player data
-  const [player, setPlayer] = useState({
-    id: playerId,
-    name: 'John Smith',
-    age: 25,
-    dateOfBirth: '2000-05-15',
-    team: 'Windhoek Hockey Club',
-    position: 'Forward',
-    nationality: 'Namibian',
-    joinedYear: '2020',
-    email: 'john.smith@example.com',
-    phone: '+264 81 123 4567',
-    bio: 'John is a talented forward with excellent goal-scoring abilities. He has represented Namibia at international tournaments and is known for his speed and technical skills.',
-    stats: {
-      matches: 45,
-      goals: 28,
-      assists: 12,
-      yellowCards: 3,
-      redCards: 0,
-    },
-    profileImage: null, // We'll use a placeholder
-  });
+  const [player, setPlayer] = useState(null);
+  const [teamName, setTeamName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Fetch player data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch players
+        const playersData = await getPlayers();
+        const foundPlayer = playersData.find(p => p.id === playerId);
+        
+        if (!foundPlayer) {
+          setError('Player not found');
+          return;
+        }
+        
+        setPlayer(foundPlayer);
+        
+        // Fetch team name
+        if (foundPlayer.teamId) {
+          const teamsData = await getTeams();
+          const team = teamsData.find(t => t.id === foundPlayer.teamId);
+          if (team) {
+            setTeamName(team.name);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Error fetching player details:', error);
+        setError('Failed to load player details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [playerId]);
+  
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
+  
+  // Show loading indicator
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading player details...</Text>
+      </View>
+    );
+  }
+  
+  // Show error message
+  if (error || !player) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={50} color={Colors.error} />
+        <Text style={styles.errorText}>{error || 'Player not found'}</Text>
+        <Button title="Go Back" onPress={() => navigation.goBack()} />
+      </View>
+    );
+  }
+  
+  // Player stats - using mock data since we don't store this in our database yet
+  const playerStats = {
+    matches: 45,
+    goals: 28,
+    assists: 12,
+    yellowCards: 3,
+    redCards: 0,
+  };
+  
+  // Player bio - using mock data or fallback
+  const playerBio = player.bio || 
+    `${player.firstName} ${player.lastName} is a ${player.position.toLowerCase()} player for ${teamName}. ` +
+    'They are a valuable member of the team with great skills and dedication to the sport.';
   
   return (
     <ScrollView style={styles.screen}>
@@ -45,7 +115,7 @@ const PlayerDetailsScreen = ({ route, navigation }) => {
               </View>
             )}
           </View>
-          <Text style={styles.playerName}>{player.name}</Text>
+          <Text style={styles.playerName}>{`${player.firstName} ${player.lastName}`}</Text>
           <View style={styles.positionBadge}>
             <Text style={styles.positionText}>{player.position}</Text>
           </View>
@@ -55,15 +125,15 @@ const PlayerDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.cardTitle}>Personal Information</Text>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Age: {player.age}</Text>
+            <Text style={styles.infoText}>Age: {calculateAge(player.dateOfBirth)}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
             <Text style={styles.infoText}>Date of Birth: {new Date(player.dateOfBirth).toLocaleDateString()}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="flag-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Nationality: {player.nationality}</Text>
+            <Ionicons name="person-outline" size={20} color={Colors.primary} />
+            <Text style={styles.infoText}>Gender: {player.gender}</Text>
           </View>
         </Card>
         
@@ -71,15 +141,11 @@ const PlayerDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.cardTitle}>Team Information</Text>
           <View style={styles.infoRow}>
             <Ionicons name="people-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Team: {player.team}</Text>
+            <Text style={styles.infoText}>Team: {teamName}</Text>
           </View>
           <View style={styles.infoRow}>
             <Ionicons name="football-outline" size={20} color={Colors.primary} />
             <Text style={styles.infoText}>Position: {player.position}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Joined: {player.joinedYear}</Text>
           </View>
         </Card>
         
@@ -99,23 +165,23 @@ const PlayerDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.cardTitle}>Player Statistics</Text>
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{player.stats.matches}</Text>
+              <Text style={styles.statValue}>{playerStats.matches}</Text>
               <Text style={styles.statLabel}>Matches</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{player.stats.goals}</Text>
+              <Text style={styles.statValue}>{playerStats.goals}</Text>
               <Text style={styles.statLabel}>Goals</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{player.stats.assists}</Text>
+              <Text style={styles.statValue}>{playerStats.assists}</Text>
               <Text style={styles.statLabel}>Assists</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{player.stats.yellowCards}</Text>
+              <Text style={styles.statValue}>{playerStats.yellowCards}</Text>
               <Text style={styles.statLabel}>Yellow Cards</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{player.stats.redCards}</Text>
+              <Text style={styles.statValue}>{playerStats.redCards}</Text>
               <Text style={styles.statLabel}>Red Cards</Text>
             </View>
           </View>
@@ -123,7 +189,7 @@ const PlayerDetailsScreen = ({ route, navigation }) => {
         
         <Card style={styles.infoCard}>
           <Text style={styles.cardTitle}>Biography</Text>
-          <Text style={styles.bio}>{player.bio}</Text>
+          <Text style={styles.bio}>{playerBio}</Text>
         </Card>
         
         <View style={styles.buttonContainer}>
@@ -142,6 +208,29 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: Colors.secondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginVertical: 20,
+    fontSize: 16,
+    color: Colors.error,
+    textAlign: 'center',
   },
   container: {
     padding: 16,

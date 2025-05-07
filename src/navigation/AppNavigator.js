@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -15,15 +16,23 @@ import EventRegistrationScreen from '../screens/EventRegistrationScreen';
 import TeamDetailsScreen from '../screens/TeamDetailsScreen';
 import PlayerDetailsScreen from '../screens/PlayerDetailsScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
+import EventCreationScreen from '../screens/EventCreationScreen';
+import LoginScreen from '../screens/LoginScreen';
+import SignupScreen from '../screens/SignupScreen';
+import AnnouncementsScreen from '../screens/AnnouncementsScreen';
+
+import { AuthContext, AuthProvider } from '../context/AuthContext';
 
 import Colors from '../constants/colors';
 
 const Tab = createBottomTabNavigator();
+const AuthStack = createNativeStackNavigator();
 const HomeStack = createNativeStackNavigator();
 const TeamsStack = createNativeStackNavigator();
 const PlayersStack = createNativeStackNavigator();
 const EventsStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
+const RootStack = createNativeStackNavigator();
 
 const HomeStackNavigator = () => {
   return (
@@ -39,6 +48,7 @@ const HomeStackNavigator = () => {
       }}
     >
       <HomeStack.Screen name="Home" component={HomeScreen} options={{ title: 'Namibia Hockey' }} />
+      <HomeStack.Screen name="Announcements" component={AnnouncementsScreen} options={{ title: 'Announcements' }} />
     </HomeStack.Navigator>
   );
 };
@@ -99,6 +109,7 @@ const EventsStackNavigator = () => {
       <EventsStack.Screen name="Events" component={EventsScreen} options={{ title: 'Events' }} />
       <EventsStack.Screen name="EventRegistration" component={EventRegistrationScreen} options={{ title: 'Register for Event' }} />
       <EventsStack.Screen name="EventDetails" component={EventDetailsScreen} options={{ title: 'Event Details' }} />
+      <EventsStack.Screen name="EventCreation" component={EventCreationScreen} options={{ title: 'Create Event' }} />
     </EventsStack.Navigator>
   );
 };
@@ -121,43 +132,92 @@ const ProfileStackNavigator = () => {
   );
 };
 
+const AuthStackNavigator = () => {
+  return (
+    <AuthStack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Colors.primary,
+        },
+        headerTintColor: Colors.background,
+        headerTitleStyle: {
+          fontWeight: 'bold',
+        },
+      }}
+    >
+      <AuthStack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      <AuthStack.Screen name="Signup" component={SignupScreen} options={{ title: 'Create Account' }} />
+    </AuthStack.Navigator>
+  );
+};
+
+const MainTabNavigator = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+
+          if (route.name === 'HomeTab') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'TeamsTab') {
+            iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'PlayersTab') {
+            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'EventsTab') {
+            iconName = focused ? 'calendar' : 'calendar-outline';
+          } else if (route.name === 'ProfileTab') {
+            iconName = focused ? 'settings' : 'settings-outline';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.secondary,
+        tabBarStyle: {
+          backgroundColor: Colors.background,
+        },
+        headerShown: false,
+      })}
+    >
+      <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home' }} />
+      <Tab.Screen name="TeamsTab" component={TeamsStackNavigator} options={{ title: 'Teams' }} />
+      <Tab.Screen name="PlayersTab" component={PlayersStackNavigator} options={{ title: 'Players' }} />
+      <Tab.Screen name="EventsTab" component={EventsStackNavigator} options={{ title: 'Events' }} />
+      <Tab.Screen name="ProfileTab" component={ProfileStackNavigator} options={{ title: 'Profile' }} />
+    </Tab.Navigator>
+  );
+};
+
 const AppNavigator = () => {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ focused, color, size }) => {
-            let iconName;
+    <AuthProvider>
+      <NavigationContainer>
+        <AppContent />
+      </NavigationContainer>
+    </AuthProvider>
+  );
+};
 
-            if (route.name === 'HomeTab') {
-              iconName = focused ? 'home' : 'home-outline';
-            } else if (route.name === 'TeamsTab') {
-              iconName = focused ? 'people' : 'people-outline';
-            } else if (route.name === 'PlayersTab') {
-              iconName = focused ? 'person' : 'person-outline';
-            } else if (route.name === 'EventsTab') {
-              iconName = focused ? 'calendar' : 'calendar-outline';
-            } else if (route.name === 'ProfileTab') {
-              iconName = focused ? 'settings' : 'settings-outline';
-            }
+const AppContent = () => {
+  const { isLoading, userToken } = useContext(AuthContext);
 
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: Colors.primary,
-          tabBarInactiveTintColor: Colors.secondary,
-          tabBarStyle: {
-            backgroundColor: Colors.background,
-          },
-          headerShown: false,
-        })}
-      >
-        <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home' }} />
-        <Tab.Screen name="TeamsTab" component={TeamsStackNavigator} options={{ title: 'Teams' }} />
-        <Tab.Screen name="PlayersTab" component={PlayersStackNavigator} options={{ title: 'Players' }} />
-        <Tab.Screen name="EventsTab" component={EventsStackNavigator} options={{ title: 'Events' }} />
-        <Tab.Screen name="ProfileTab" component={ProfileStackNavigator} options={{ title: 'Profile' }} />
-      </Tab.Navigator>
-    </NavigationContainer>
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <RootStack.Navigator screenOptions={{ headerShown: false }}>
+      {userToken ? (
+        <RootStack.Screen name="Main" component={MainTabNavigator} />
+      ) : (
+        <RootStack.Screen name="Auth" component={AuthStackNavigator} />
+      )}
+    </RootStack.Navigator>
   );
 };
 

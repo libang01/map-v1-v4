@@ -1,72 +1,103 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, Alert } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { StyleSheet, View, Text, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Modal, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Checkbox } from 'react-native-paper';
 
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { getTeams, getPlayers, getEvents, saveEventRegistration } from '../utils/storage';
 
 const EventRegistrationScreen = ({ route, navigation }) => {
   const { eventId } = route.params || {};
   const [selectedTeam, setSelectedTeam] = useState('');
-  const [selectedPlayers, setSelectedPlayers] = useState([]);
+  const [selectedTeamName, setSelectedTeamName] = useState('Select a team');
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [teamOptions, setTeamOptions] = useState([]);
+  const [minimumPlayers, setMinimumPlayers] = useState(2); // Minimum players required for an event
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Mock event data
-  const [event, setEvent] = useState({
-    id: eventId,
-    title: 'National Championship',
-    date: '2025-06-15',
-    location: 'Windhoek Stadium',
-    registrationFee: 'N$500',
-    description: 'The annual National Hockey Championship brings together the best teams from across Namibia to compete for the national title.',
-  });
+  // State for event, teams, and players data
+  const [event, setEvent] = useState(null);
+  const [teams, setTeams] = useState([]);
+  const [players, setPlayers] = useState([]);
   
-  // Mock teams data
-  const [teams, setTeams] = useState([
-    { id: '1', name: 'Windhoek Hockey Club' },
-    { id: '2', name: 'Coastal Hockey Club' },
-    { id: '3', name: 'University of Namibia' },
-    { id: '4', name: 'Namibia Defense Force' },
-    { id: '5', name: 'Swakopmund Hockey Club' },
-  ]);
+  // Load data from storage
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load event data
+        const events = await getEvents();
+        const foundEvent = events.find(e => e.id === eventId);
+        if (foundEvent) {
+          setEvent(foundEvent);
+        } else {
+          // Handle case when event is not found
+          console.error('Event not found with ID:', eventId);
+          Alert.alert(
+            'Error',
+            'Event not found. Please try again or contact support.',
+            [{ text: 'OK', onPress: () => navigation.goBack() }]
+          );
+          return;
+        }
+        
+        // Load teams
+        const storedTeams = await getTeams();
+        setTeams(storedTeams);
+        
+        // Format teams for dropdown
+        const formattedTeams = storedTeams.map(team => ({
+          name: team.name,
+          id: team.id
+        }));
+        setTeamOptions(formattedTeams);
+        
+        // Load players
+        const storedPlayers = await getPlayers();
+        // Format player names for display
+        const formattedPlayers = storedPlayers.map(player => ({
+          id: player.id,
+          name: `${player.firstName} ${player.lastName}`,
+          teamId: player.teamId
+        }));
+        setPlayers(formattedPlayers);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        Alert.alert('Error', 'Failed to load data. Please try again.');
+      }
+    };
+    
+    loadData();
+  }, [eventId]);
   
-  // Mock players data
-  const [players, setPlayers] = useState([
-    { id: '1', name: 'John Smith', teamId: '1' },
-    { id: '2', name: 'Sarah Johnson', teamId: '2' },
-    { id: '3', name: 'Michael Brown', teamId: '3' },
-    { id: '4', name: 'Emma Williams', teamId: '4' },
-    { id: '5', name: 'David Miller', teamId: '5' },
-    { id: '6', name: 'Lisa Davis', teamId: '1' },
-    { id: '7', name: 'Robert Wilson', teamId: '1' },
-    { id: '8', name: 'Jennifer Taylor', teamId: '2' },
-    { id: '9', name: 'Thomas Anderson', teamId: '3' },
-    { id: '10', name: 'Patricia Martinez', teamId: '4' },
-  ]);
+  // Update team name when team id changes
+  useEffect(() => {
+    if (selectedTeam) {
+      const team = teamOptions.find(t => t.id === selectedTeam);
+      if (team) {
+        setSelectedTeamName(team.name);
+      }
+    }
+  }, [selectedTeam, teamOptions]);
   
   // Filter players based on selected team
   const teamPlayers = players.filter(player => player.teamId === selectedTeam);
   
-  const togglePlayerSelection = (playerId) => {
-    setSelectedPlayers(prevSelected => {
-      if (prevSelected.includes(playerId)) {
-        return prevSelected.filter(id => id !== playerId);
-      } else {
-        return [...prevSelected, playerId];
-      }
-    });
-  };
+  // Get the number of players in the team
+  const playerCount = teamPlayers.length;
   
-  const handleSubmit = () => {
+
+  
+  const handleSubmit = async () => {
     if (!selectedTeam) {
       Alert.alert('Validation Error', 'Please select a team');
       return;
     }
     
-    if (selectedPlayers.length === 0) {
-      Alert.alert('Validation Error', 'Please select at least one player');
+    if (playerCount < minimumPlayers) {
+      Alert.alert('Validation Error', `Your team needs at least ${minimumPlayers} players to register (currently has ${playerCount})`);
       return;
     }
     
@@ -77,8 +108,19 @@ const EventRegistrationScreen = ({ route, navigation }) => {
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      // Get all player IDs from the team (up to the first minimumPlayers)
+      const playerIds = teamPlayers.slice(0, minimumPlayers).map(player => player.id);
+      
+      const registrationData = {
+        eventId,
+        teamId: selectedTeam,
+        playerIds: playerIds,
+        acceptedTerms,
+      };
+      
+      await saveEventRegistration(registrationData);
+      
       setIsLoading(false);
       Alert.alert(
         'Success',
@@ -90,12 +132,30 @@ const EventRegistrationScreen = ({ route, navigation }) => {
           },
         ]
       );
-    }, 1500);
+    } catch (error) {
+      setIsLoading(false);
+      Alert.alert('Error', 'Failed to save registration. Please try again.');
+      console.error('Error saving registration:', error);
+    }
   };
   
+  // Show loading or error state if event is not loaded yet
+  if (!event) {
+    return (
+      <View style={[styles.screen, styles.centerContent]}>
+        <Text>Loading event details...</Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.screen}>
-      <View style={styles.container}>
+    <KeyboardAvoidingView 
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={100}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.container}>
         <Text style={styles.title}>Event Registration</Text>
         <Text style={styles.subtitle}>Register for {event.title}</Text>
         
@@ -118,39 +178,68 @@ const EventRegistrationScreen = ({ route, navigation }) => {
         
         <View style={styles.formGroup}>
           <Text style={styles.label}>Select Team *</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedTeam}
-              onValueChange={(itemValue) => {
-                setSelectedTeam(itemValue);
-                setSelectedPlayers([]);
-              }}
-              style={styles.picker}
+          <TouchableOpacity 
+            style={styles.selectField}
+            onPress={() => setShowTeamModal(true)}
+          >
+            <Text style={selectedTeam ? styles.selectText : styles.placeholderText}>{selectedTeamName}</Text>
+            <Ionicons name="chevron-down" size={20} color={Colors.secondary} />
+          </TouchableOpacity>
+          
+          <Modal
+            visible={showTeamModal}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={() => setShowTeamModal(false)}
+          >
+            <TouchableOpacity 
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowTeamModal(false)}
             >
-              <Picker.Item label="Select a team" value="" />
-              {teams.map(team => (
-                <Picker.Item key={team.id} label={team.name} value={team.id} />
-              ))}
-            </Picker>
-          </View>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Team</Text>
+                {teamOptions.length > 0 ? (
+                  teamOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[styles.modalOption, selectedTeam === option.id && styles.selectedOption]}
+                      onPress={() => {
+                        setSelectedTeam(option.id);
+                        setSelectedTeamName(option.name);
+                        setShowTeamModal(false);
+                        // No need to reset selected players as we're using all team players
+                      }}
+                    >
+                      <Text style={[styles.modalOptionText, selectedTeam === option.id && styles.selectedOptionText]}>
+                        {option.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.noOptionsText}>No teams available</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </Modal>
         </View>
         
         {selectedTeam && (
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Select Players *</Text>
+            <Text style={styles.label}>Team Players</Text>
             <View style={styles.playersContainer}>
-              {teamPlayers.map(player => (
-                <View key={player.id} style={styles.playerCheckbox}>
-                  <Checkbox
-                    status={selectedPlayers.includes(player.id) ? 'checked' : 'unchecked'}
-                    onPress={() => togglePlayerSelection(player.id)}
-                    color={Colors.primary}
-                  />
-                  <Text style={styles.playerName}>{player.name}</Text>
-                </View>
-              ))}
-              {teamPlayers.length === 0 && (
-                <Text style={styles.noPlayersText}>No players found for this team</Text>
+              <Text style={styles.playerCountText}>
+                {playerCount} players registered for this team
+              </Text>
+              {playerCount < minimumPlayers && (
+                <Text style={styles.warningText}>
+                  Your team needs at least {minimumPlayers} players to register for this event.
+                </Text>
+              )}
+              {playerCount >= minimumPlayers && (
+                <Text style={styles.successText}>
+                  Your team meets the minimum requirement of {minimumPlayers} players.
+                </Text>
               )}
             </View>
           </View>
@@ -173,15 +262,24 @@ const EventRegistrationScreen = ({ route, navigation }) => {
           loading={isLoading}
           disabled={isLoading}
         />
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   screen: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 30,
   },
   container: {
     padding: 16,
@@ -240,14 +338,66 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     color: Colors.secondary,
   },
-  pickerContainer: {
+  selectField: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.gray,
     borderRadius: 5,
     backgroundColor: Colors.background,
-  },
-  picker: {
+    padding: 12,
     height: 50,
+  },
+  selectText: {
+    fontSize: 16,
+    color: Colors.secondary,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: Colors.gray,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '80%',
+    backgroundColor: Colors.background,
+    borderRadius: 10,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.primary,
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalOption: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.lightGray,
+  },
+  selectedOption: {
+    backgroundColor: Colors.primary + '20', // 20% opacity
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: Colors.secondary,
+  },
+  selectedOptionText: {
+    color: Colors.primary,
+    fontWeight: 'bold',
+  },
+  noOptionsText: {
+    fontSize: 16,
+    color: Colors.gray,
+    textAlign: 'center',
+    padding: 15,
   },
   playersContainer: {
     borderWidth: 1,
@@ -271,6 +421,27 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     fontStyle: 'italic',
     padding: 8,
+  },
+  playerCountText: {
+    fontSize: 16,
+    color: Colors.secondary,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#d9534f', // Red color for warning
+    fontStyle: 'italic',
+    padding: 8,
+    textAlign: 'center',
+  },
+  successText: {
+    fontSize: 14,
+    color: '#5cb85c', // Green color for success
+    fontStyle: 'italic',
+    padding: 8,
+    textAlign: 'center',
   },
   termsContainer: {
     flexDirection: 'row',

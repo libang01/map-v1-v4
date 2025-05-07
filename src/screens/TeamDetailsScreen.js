@@ -1,40 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, FlatList } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, FlatList, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { getTeams, getPlayers } from '../utils/storage';
 
 const TeamDetailsScreen = ({ route, navigation }) => {
   const { teamId } = route.params;
   
-  // Mock team data
-  const [team, setTeam] = useState({
-    id: teamId,
-    name: 'Windhoek Hockey Club',
-    category: 'Men',
-    division: 'Premier',
-    founded: '1985',
-    homeGround: 'Windhoek Hockey Stadium',
-    coach: 'Michael Johnson',
-    contactEmail: 'info@windhoekHC.com',
-    contactPhone: '+264 61 123 4567',
-    description: 'Windhoek Hockey Club is one of the oldest and most successful hockey clubs in Namibia, with a strong tradition of developing local talent and competing at the highest level.',
-  });
+  const [team, setTeam] = useState(null);
+  const [players, setPlayers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  // Mock players data
-  const [players, setPlayers] = useState([
-    { id: '1', name: 'John Smith', position: 'Forward', age: 25 },
-    { id: '2', name: 'Robert Wilson', position: 'Midfielder', age: 27 },
-    { id: '3', name: 'David Brown', position: 'Defender', age: 24 },
-    { id: '4', name: 'Thomas Clark', position: 'Goalkeeper', age: 29 },
-    { id: '5', name: 'Michael Davis', position: 'Forward', age: 22 },
-    { id: '6', name: 'William Taylor', position: 'Midfielder', age: 26 },
-    { id: '7', name: 'James Anderson', position: 'Defender', age: 23 },
-  ]);
+  // Fetch team and player data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch teams
+        const teamsData = await getTeams();
+        const foundTeam = teamsData.find(t => t.id === teamId);
+        
+        if (!foundTeam) {
+          setError('Team not found');
+          return;
+        }
+        
+        setTeam(foundTeam);
+        
+        // Fetch players for this team
+        const allPlayers = await getPlayers();
+        const teamPlayers = allPlayers.filter(p => p.teamId === teamId);
+        setPlayers(teamPlayers);
+        
+      } catch (error) {
+        console.error('Error fetching team details:', error);
+        setError('Failed to load team details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [teamId]);
   
-  // Mock upcoming matches
+  // Mock upcoming matches (we'll keep this as mock data for now)
   const [upcomingMatches, setUpcomingMatches] = useState([
     { id: '1', opponent: 'Coastal Hockey Club', date: '2025-06-10', venue: 'Home' },
     { id: '2', opponent: 'University of Namibia', date: '2025-06-17', venue: 'Away' },
@@ -42,7 +56,7 @@ const TeamDetailsScreen = ({ route, navigation }) => {
   ]);
   
   const renderPlayerItem = ({ item }) => (
-    <Card style={styles.playerCard} onPress={() => navigation.navigate('PlayerDetails', { playerId: item.id })}>
+    <Card style={styles.playerCard} onPress={() => navigation.navigate('PlayersTab', { screen: 'PlayerDetails', params: { playerId: item.id } })}>
       <View style={styles.playerInfo}>
         <Text style={styles.playerName}>{item.name}</Text>
         <View style={styles.playerDetails}>
@@ -64,6 +78,27 @@ const TeamDetailsScreen = ({ route, navigation }) => {
       </View>
     </Card>
   );
+  
+  // Show loading indicator
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading team details...</Text>
+      </View>
+    );
+  }
+  
+  // Show error message
+  if (error || !team) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={50} color={Colors.error} />
+        <Text style={styles.errorText}>{error || 'Team not found'}</Text>
+        <Button title="Go Back" onPress={() => navigation.goBack()} />
+      </View>
+    );
+  }
   
   return (
     <ScrollView style={styles.screen}>
@@ -116,7 +151,10 @@ const TeamDetailsScreen = ({ route, navigation }) => {
           <Text style={styles.sectionTitle}>Players</Text>
           <Button 
             title="Add Player" 
-            onPress={() => navigation.navigate('PlayerRegistration')}
+            onPress={() => navigation.navigate('PlayersTab', {
+              screen: 'PlayerRegistration',
+              params: { teamId: teamId }
+            })}
             style={styles.addButton}
             textStyle={styles.addButtonText}
           />
@@ -147,6 +185,29 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: Colors.secondary,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginVertical: 20,
+    fontSize: 16,
+    color: Colors.error,
+    textAlign: 'center',
   },
   container: {
     padding: 16,

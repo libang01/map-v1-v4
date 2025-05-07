@@ -1,22 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import Card from '../components/Card';
 import Button from '../components/Button';
 import Colors from '../constants/colors';
+import { getPlayers, getTeams } from '../utils/storage';
 
 const PlayersScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
   
-  // Mock data for players
-  const [players, setPlayers] = useState([
-    { id: '1', name: 'John Smith', team: 'Windhoek Hockey Club', position: 'Forward', age: 25 },
-    { id: '2', name: 'Sarah Johnson', team: 'Coastal Hockey Club', position: 'Goalkeeper', age: 23 },
-    { id: '3', name: 'Michael Brown', team: 'University of Namibia', position: 'Defender', age: 21 },
-    { id: '4', name: 'Emma Williams', team: 'Namibia Defense Force', position: 'Midfielder', age: 24 },
-    { id: '5', name: 'David Miller', team: 'Swakopmund Hockey Club', position: 'Forward', age: 22 },
-  ]);
+  // Load players and teams from storage
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Load teams first to get team names
+        const storedTeams = await getTeams();
+        const teamMap = {};
+        storedTeams.forEach(team => {
+          teamMap[team.id] = team.name;
+        });
+        setTeams(teamMap);
+        
+        // Load players
+        const storedPlayers = await getPlayers();
+        // Format player data
+        const formattedPlayers = storedPlayers.map(player => ({
+          id: player.id,
+          name: `${player.firstName} ${player.lastName}`,
+          team: teamMap[player.teamId] || 'Unknown Team',
+          position: player.position,
+          age: calculateAge(player.dateOfBirth),
+          teamId: player.teamId
+        }));
+        setPlayers(formattedPlayers);
+      } catch (error) {
+        console.error('Error loading players:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, []);
+  
+  // Refresh data when navigating back to this screen
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', async () => {
+      try {
+        setIsLoading(true);
+        
+        // Refresh teams
+        const storedTeams = await getTeams();
+        const teamMap = {};
+        storedTeams.forEach(team => {
+          teamMap[team.id] = team.name;
+        });
+        setTeams(teamMap);
+        
+        // Refresh players
+        const storedPlayers = await getPlayers();
+        const formattedPlayers = storedPlayers.map(player => ({
+          id: player.id,
+          name: `${player.firstName} ${player.lastName}`,
+          team: teamMap[player.teamId] || 'Unknown Team',
+          position: player.position,
+          age: calculateAge(player.dateOfBirth),
+          teamId: player.teamId
+        }));
+        setPlayers(formattedPlayers);
+      } catch (error) {
+        console.error('Error refreshing players:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    });
+    
+    return unsubscribe;
+  }, [navigation]);
+  
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 0;
+    
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
 
   const filteredPlayers = players.filter(player => 
     player.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -67,17 +147,53 @@ const PlayersScreen = ({ navigation }) => {
         />
       </View>
       
-      <FlatList
-        data={filteredPlayers}
-        keyExtractor={item => item.id}
-        renderItem={renderPlayerItem}
-        contentContainerStyle={styles.list}
-      />
+      {isLoading ? (
+        <View style={styles.centerContent}>
+          <Text>Loading players...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredPlayers}
+          keyExtractor={item => item.id}
+          renderItem={renderPlayerItem}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'No players match your search' : 'No players found'}
+              </Text>
+              {!searchQuery && (
+                <Button
+                  title="Register New Player"
+                  onPress={() => navigation.navigate('PlayerRegistration')}
+                />
+              )}
+            </View>
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.secondary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   screen: {
     flex: 1,
     backgroundColor: Colors.lightGray,
