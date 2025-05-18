@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { StyleSheet, View, Text, ScrollView, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { StyleSheet, View, ScrollView, Image } from 'react-native';
+import { Text, Surface, Divider, Card as PaperCard, Avatar, ActivityIndicator } from 'react-native-paper';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 import Button from '../components/Button';
-import Card from '../components/Card';
 import Colors from '../constants/colors';
 import { getCurrentUser } from '../utils/storage';
 import { AuthContext } from '../context/AuthContext';
@@ -38,64 +38,77 @@ const ProfileScreen = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.screen}>
+      <Surface style={styles.headerSection} elevation={2}>
+        <View style={styles.headerContent}>
+          <Text variant="headlineMedium" style={styles.title}>Profile</Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>Manage your account</Text>
+        </View>
+      </Surface>
+
       <View style={styles.container}>
-        <View style={styles.profileHeader}>
+        <Surface style={styles.profileHeader} elevation={1}>
           <View style={styles.profileImageContainer}>
             {userData.profileImage ? (
-              <Image source={{ uri: userData.profileImage }} style={styles.profileImage} />
+              <Avatar.Image size={100} source={{ uri: userData.profileImage }} />
             ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={60} color={Colors.gray} />
-              </View>
+              <Avatar.Icon size={100} icon="account" color={Colors.background} style={styles.avatar} />
             )}
           </View>
-          <Text style={styles.userName}>{userData.username || userData.name || 'User'}</Text>
-          <Text style={styles.userTeam}>{userData.team}</Text>
-        </View>
+          <Text variant="titleLarge" style={styles.userName}>{userData.username || userData.name || 'User'}</Text>
+          <Text variant="bodyMedium" style={styles.userTeam}>{userData.team}</Text>
+        </Surface>
 
-        <Card style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Contact Information</Text>
-          <View style={styles.infoRow}>
-            <Ionicons name="mail-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>{userData.email}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="call-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>{userData.phone}</Text>
-          </View>
-        </Card>
+        <PaperCard style={styles.infoCard} elevation={2}>
+          <PaperCard.Content>
+            <Text variant="titleMedium" style={styles.cardTitle}>Contact Information</Text>
+            <Divider style={styles.divider} />
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="envelope" size={18} color={Colors.primary} solid />
+              <Text style={styles.infoText}>{userData.email}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="phone" size={18} color={Colors.primary} solid />
+              <Text style={styles.infoText}>{userData.phone}</Text>
+            </View>
+          </PaperCard.Content>
+        </PaperCard>
 
-        <Card style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Hockey Information</Text>
-          <View style={styles.infoRow}>
-            <Ionicons name="people-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Team: {userData.team}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="football-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Position: {userData.position}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-            <Text style={styles.infoText}>Member since: {userData.memberSince}</Text>
-          </View>
-        </Card>
+        <PaperCard style={styles.infoCard} elevation={2}>
+          <PaperCard.Content>
+            <Text variant="titleMedium" style={styles.cardTitle}>Hockey Information</Text>
+            <Divider style={styles.divider} />
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="users" size={18} color={Colors.primary} solid />
+              <Text style={styles.infoText}>Team: {userData.team}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="running" size={18} color={Colors.primary} solid />
+              <Text style={styles.infoText}>Position: {userData.position}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <FontAwesome5 name="calendar-alt" size={18} color={Colors.primary} solid />
+              <Text style={styles.infoText}>Member since: {userData.memberSince}</Text>
+            </View>
+          </PaperCard.Content>
+        </PaperCard>
 
         <View style={styles.buttonContainer}>
           <Button
             title="Edit Profile"
             onPress={() => {}}
+            mode="contained"
             style={styles.button}
           />
           <Button
             title="Change Password"
             onPress={() => {}}
-            style={[styles.button, styles.secondaryButton]}
-            textStyle={styles.secondaryButtonText}
+            mode="outlined"
+            style={styles.button}
           />
           <Button
             title="Logout"
             onPress={handleLogout}
+            mode="contained"
             style={[styles.button, styles.logoutButton]}
           />
         </View>
@@ -107,7 +120,27 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.lightGray,
+    backgroundColor: Colors.surface,
+  },
+  headerSection: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    marginBottom: 24,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerContent: {
+    alignItems: 'center',
+  },
+  title: {
+    fontWeight: 'bold',
+    color: Colors.background,
+    marginBottom: 8,
+  },
+  subtitle: {
+    color: Colors.lightBlue,
+    fontSize: 16,
   },
   container: {
     padding: 16,
@@ -115,43 +148,38 @@ const styles = StyleSheet.create({
   profileHeader: {
     alignItems: 'center',
     marginBottom: 24,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: Colors.background,
   },
   profileImageContainer: {
     marginBottom: 16,
   },
-  profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  profileImagePlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: Colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.gray,
+  avatar: {
+    backgroundColor: Colors.accent,
   },
   userName: {
-    fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.secondary,
+    color: Colors.primary,
     marginBottom: 4,
   },
   userTeam: {
-    fontSize: 16,
-    color: Colors.primary,
+    color: Colors.textLight,
   },
   infoCard: {
     marginBottom: 16,
+    backgroundColor: Colors.background,
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.accent,
   },
   cardTitle: {
-    fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.secondary,
-    marginBottom: 12,
+    color: Colors.primary,
+    marginBottom: 8,
+  },
+  divider: {
+    marginBottom: 16,
+    backgroundColor: Colors.border,
   },
   infoRow: {
     flexDirection: 'row',
@@ -160,22 +188,14 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: Colors.secondary,
-    marginLeft: 12,
+    color: Colors.text,
+    marginLeft: 16,
   },
   buttonContainer: {
-    marginTop: 8,
+    marginTop: 16,
   },
   button: {
     marginBottom: 12,
-  },
-  secondaryButton: {
-    backgroundColor: Colors.background,
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  secondaryButtonText: {
-    color: Colors.primary,
   },
   logoutButton: {
     backgroundColor: Colors.error,

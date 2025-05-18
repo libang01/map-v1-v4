@@ -1,12 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, LogBox, Button } from 'react-native';
+import { StyleSheet, Text, View, LogBox, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { PaperProvider } from 'react-native-paper';
+import { PaperProvider, MD3LightTheme, Button, ActivityIndicator } from 'react-native-paper';
 
 import AppNavigator from './src/navigation/AppNavigator';
 import Colors from './src/constants/colors';
 import { initializeStorage } from './src/utils/storage';
+
+// Configure the Paper theme with our colors
+const theme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: Colors.primary,
+    secondary: Colors.accent,
+    error: Colors.error,
+    background: Colors.background,
+    surface: Colors.surface,
+    text: Colors.text,
+    onSurface: Colors.text,
+    disabled: Colors.disabled,
+    placeholder: Colors.textLight,
+    backdrop: Colors.backdrop,
+    notification: Colors.primary,
+  },
+  roundness: 8,
+};
 
 // Ignore specific warnings
 LogBox.ignoreLogs([
@@ -20,11 +40,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: Colors.background,
+    padding: 20,
   },
   loadingText: {
-    fontSize: 18,
+    fontSize: 20,
     color: Colors.primary,
-    marginBottom: 20,
+    marginBottom: 24,
+    fontWeight: 'bold',
   },
   errorContainer: {
     flex: 1,
@@ -71,7 +93,8 @@ export default function App() {
   if (!isInitialized && !error) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading Namibia Hockey</Text>
       </View>
     );
   }
@@ -82,14 +105,16 @@ export default function App() {
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Error initializing app:</Text>
         <Text style={styles.errorMessage}>{error}</Text>
-        <Button title="Retry" onPress={() => window.location.reload()} />
+        <Button mode="contained" onPress={() => window.location.reload()}>
+          Retry
+        </Button>
       </View>
     );
   }
 
   return (
     <SafeAreaProvider>
-      <PaperProvider>
+      <PaperProvider theme={theme}>
         <StatusBar style="light" backgroundColor={Colors.primary} />
         <AppNavigator />
       </PaperProvider>

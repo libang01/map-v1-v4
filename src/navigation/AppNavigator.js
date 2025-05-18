@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator } from 'react-native-paper';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
 import TeamsScreen from '../screens/TeamsScreen';
@@ -45,6 +46,10 @@ const HomeStackNavigator = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: Colors.surface,
+        },
       }}
     >
       <HomeStack.Screen name="Home" component={HomeScreen} options={{ title: 'Namibia Hockey' }} />
@@ -63,6 +68,10 @@ const TeamsStackNavigator = () => {
         headerTintColor: Colors.background,
         headerTitleStyle: {
           fontWeight: 'bold',
+        },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: Colors.surface,
         },
       }}
     >
@@ -84,6 +93,10 @@ const PlayersStackNavigator = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: Colors.surface,
+        },
       }}
     >
       <PlayersStack.Screen name="Players" component={PlayersScreen} options={{ title: 'Players' }} />
@@ -103,6 +116,10 @@ const EventsStackNavigator = () => {
         headerTintColor: Colors.background,
         headerTitleStyle: {
           fontWeight: 'bold',
+        },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: Colors.surface,
         },
       }}
     >
@@ -125,6 +142,10 @@ const ProfileStackNavigator = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: Colors.surface,
+        },
       }}
     >
       <ProfileStack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
@@ -143,6 +164,10 @@ const AuthStackNavigator = () => {
         headerTitleStyle: {
           fontWeight: 'bold',
         },
+        headerShadowVisible: false,
+        contentStyle: {
+          backgroundColor: Colors.surface,
+        },
       }}
     >
       <AuthStack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
@@ -157,25 +182,39 @@ const MainTabNavigator = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
+          let solid = focused;
 
           if (route.name === 'HomeTab') {
-            iconName = focused ? 'home' : 'home-outline';
+            iconName = 'home';
           } else if (route.name === 'TeamsTab') {
-            iconName = focused ? 'people' : 'people-outline';
+            iconName = 'users';
           } else if (route.name === 'PlayersTab') {
-            iconName = focused ? 'person' : 'person-outline';
+            iconName = 'user';
           } else if (route.name === 'EventsTab') {
-            iconName = focused ? 'calendar' : 'calendar-outline';
+            iconName = 'calendar-alt';
           } else if (route.name === 'ProfileTab') {
-            iconName = focused ? 'settings' : 'settings-outline';
+            iconName = 'cog';
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <FontAwesome5 name={iconName} size={size} color={color} solid={solid} />;
         },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.secondary,
+        tabBarActiveTintColor: Colors.accent,
+        tabBarInactiveTintColor: Colors.background,
         tabBarStyle: {
-          backgroundColor: Colors.background,
+          backgroundColor: Colors.primary,
+          borderTopWidth: 0,
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
+          fontFamily: 'System',
+        },
+        tabBarItemStyle: {
+          paddingVertical: 5,
         },
         headerShown: false,
       })}
@@ -204,8 +243,9 @@ const AppContent = () => {
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text>Loading...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
   }
@@ -220,5 +260,20 @@ const AppContent = () => {
     </RootStack.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: Colors.primary,
+    fontWeight: 'bold',
+  }
+});
 
 export default AppNavigator;

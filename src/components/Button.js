@@ -1,40 +1,51 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { Button as PaperButton } from 'react-native-paper';
 import Colors from '../constants/colors';
 
-const Button = ({ title, onPress, style, textStyle, disabled, loading }) => {
+const Button = ({ 
+  title, 
+  onPress, 
+  style, 
+  textStyle, 
+  disabled, 
+  loading, 
+  mode = 'contained',
+  icon,
+  compact = false
+}) => {
   return (
-    <TouchableOpacity 
-      style={[styles.button, disabled && styles.disabled, style]} 
-      onPress={onPress} 
-      disabled={disabled || loading}
+    <PaperButton
+      mode={mode}
+      onPress={onPress}
+      disabled={disabled}
+      loading={loading}
+      icon={icon}
+      compact={compact}
+      style={[styles.button, mode === 'outlined' && styles.outlinedButton, style]}
+      labelStyle={[styles.buttonText, textStyle]}
+      contentStyle={styles.buttonContent}
     >
-      {loading ? (
-        <ActivityIndicator color={Colors.background} />
-      ) : (
-        <Text style={[styles.buttonText, textStyle]}>{title}</Text>
-      )}
-    </TouchableOpacity>
+      {title}
+    </PaperButton>
   );
 };
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginVertical: 10,
+    borderRadius: 8,
+  },
+  outlinedButton: {
+    borderColor: Colors.primary,
+    borderWidth: 1.5,
+  },
+  buttonContent: {
+    paddingVertical: 6,
   },
   buttonText: {
-    color: Colors.background,
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  disabled: {
-    backgroundColor: Colors.gray,
   },
 });
 

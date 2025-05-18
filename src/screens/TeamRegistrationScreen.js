@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, Text, TextInput, Alert, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { Modal } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { StyleSheet, View, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Text, TextInput, Surface, Divider, Button as PaperButton, Menu, Chip } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import Button from '../components/Button';
 import Colors from '../constants/colors';
@@ -10,13 +10,13 @@ import { saveTeam } from '../utils/storage';
 const TeamRegistrationScreen = ({ navigation }) => {
   const [teamName, setTeamName] = useState('');
   const [category, setCategory] = useState('Men');
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const categoryOptions = [
     'Men', 'Women', 'Boys U18', 'Girls U18', 'Boys U16', 'Girls U16', 'Boys U14', 'Girls U14'
   ];
   
   const [division, setDivision] = useState('Premier');
-  const [showDivisionModal, setShowDivisionModal] = useState(false);
+  const [showDivisionMenu, setShowDivisionMenu] = useState(false);
   const divisionOptions = ['Premier', 'First', 'Second', 'Development'];
   
   const [contactName, setContactName] = useState('');
@@ -71,145 +71,157 @@ const TeamRegistrationScreen = ({ navigation }) => {
       keyboardVerticalOffset={100}
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Surface style={styles.headerSection} elevation={1}>
+          <Text variant="headlineSmall" style={styles.title}>Team Registration</Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>Register your team for the upcoming season</Text>
+        </Surface>
+
         <View style={styles.container}>
-        <Text style={styles.title}>Team Registration</Text>
-        <Text style={styles.subtitle}>Register your team for the upcoming season</Text>
+          <Text variant="titleMedium" style={styles.formSectionTitle}>Team Information</Text>
+          <Divider style={styles.divider} />
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Team Name *</Text>
-          <TextInput
-            style={styles.input}
-            value={teamName}
-            onChangeText={setTeamName}
-            placeholder="Enter team name"
-          />
-        </View>
+          <View style={styles.formGroup}>
+            <TextInput
+              label="Team Name *"
+              value={teamName}
+              onChangeText={setTeamName}
+              mode="outlined"
+              style={styles.input}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="shield" color={Colors.primary} />}
+            />
+          </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Category *</Text>
-          <TouchableOpacity 
-            style={styles.selectField}
-            onPress={() => setShowCategoryModal(true)}
-          >
-            <Text style={styles.selectText}>{category}</Text>
-            <Ionicons name="chevron-down" size={20} color={Colors.secondary} />
-          </TouchableOpacity>
-          
-          <Modal
-            visible={showCategoryModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowCategoryModal(false)}
-          >
-            <TouchableOpacity 
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setShowCategoryModal(false)}
+          <View style={styles.formGroup}>
+            <Text variant="bodyMedium" style={styles.label}>Category *</Text>
+            <Menu
+              visible={showCategoryMenu}
+              onDismiss={() => setShowCategoryMenu(false)}
+              anchor={
+                <PaperButton 
+                  mode="outlined" 
+                  onPress={() => setShowCategoryMenu(true)}
+                  icon="chevron-down"
+                  contentStyle={styles.dropdownButton}
+                  style={styles.menuButton}
+                >
+                  {category}
+                </PaperButton>
+              }
             >
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select Category</Text>
-                {categoryOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[styles.modalOption, category === option && styles.selectedOption]}
-                    onPress={() => {
-                      setCategory(option);
-                      setShowCategoryModal(false);
-                    }}
-                  >
-                    <Text style={[styles.modalOptionText, category === option && styles.selectedOptionText]}>
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </View>
+              {categoryOptions.map((option) => (
+                <Menu.Item
+                  key={option}
+                  onPress={() => {
+                    setCategory(option);
+                    setShowCategoryMenu(false);
+                  }}
+                  title={option}
+                  leadingIcon={category === option ? "check" : undefined}
+                />
+              ))}
+            </Menu>
+          </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Division *</Text>
-          <TouchableOpacity 
-            style={styles.selectField}
-            onPress={() => setShowDivisionModal(true)}
-          >
-            <Text style={styles.selectText}>{division}</Text>
-            <Ionicons name="chevron-down" size={20} color={Colors.secondary} />
-          </TouchableOpacity>
-          
-          <Modal
-            visible={showDivisionModal}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={() => setShowDivisionModal(false)}
-          >
-            <TouchableOpacity 
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setShowDivisionModal(false)}
-            >
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Select Division</Text>
-                {divisionOptions.map((option) => (
-                  <TouchableOpacity
-                    key={option}
-                    style={[styles.modalOption, division === option && styles.selectedOption]}
-                    onPress={() => {
-                      setDivision(option);
-                      setShowDivisionModal(false);
-                    }}
-                  >
-                    <Text style={[styles.modalOptionText, division === option && styles.selectedOptionText]}>
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </View>
+          <View style={styles.categoryChips}>
+            {categoryOptions.slice(0, 4).map((option) => (
+              <Chip 
+                key={option}
+                selected={category === option}
+                onPress={() => setCategory(option)}
+                style={[styles.chip, category === option && styles.selectedChip]}
+                textStyle={category === option ? styles.selectedChipText : styles.chipText}
+                showSelectedCheck={false}
+                compact
+              >
+                {option}
+              </Chip>
+            ))}
+          </View>
+          <View style={styles.categoryChips}>
+            {categoryOptions.slice(4).map((option) => (
+              <Chip 
+                key={option}
+                selected={category === option}
+                onPress={() => setCategory(option)}
+                style={[styles.chip, category === option && styles.selectedChip]}
+                textStyle={category === option ? styles.selectedChipText : styles.chipText}
+                showSelectedCheck={false}
+                compact
+              >
+                {option}
+              </Chip>
+            ))}
+          </View>
 
-        <Text style={styles.sectionTitle}>Contact Information</Text>
+          <View style={styles.formGroup}>
+            <Text variant="bodyMedium" style={styles.label}>Division *</Text>
+            <View style={styles.divisionChips}>
+              {divisionOptions.map((option) => (
+                <Chip 
+                  key={option}
+                  selected={division === option}
+                  onPress={() => setDivision(option)}
+                  style={[styles.divisionChip, division === option && styles.selectedChip]}
+                  textStyle={division === option ? styles.selectedChipText : styles.chipText}
+                  showSelectedCheck={false}
+                >
+                  {option}
+                </Chip>
+              ))}
+            </View>
+          </View>
 
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Contact Person *</Text>
-          <TextInput
-            style={styles.input}
-            value={contactName}
-            onChangeText={setContactName}
-            placeholder="Enter contact person's name"
+          <Text variant="titleMedium" style={styles.formSectionTitle}>Contact Information</Text>
+          <Divider style={styles.divider} />
+
+          <View style={styles.formGroup}>
+            <TextInput
+              label="Contact Person *"
+              value={contactName}
+              onChangeText={setContactName}
+              mode="outlined"
+              style={styles.input}
+              outlineStyle={styles.inputOutline}
+              left={<TextInput.Icon icon="account" color={Colors.primary} />}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <TextInput
+              label="Email *"
+              value={contactEmail}
+              onChangeText={setContactEmail}
+              mode="outlined"
+              style={styles.input}
+              outlineStyle={styles.inputOutline}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              left={<TextInput.Icon icon="email" color={Colors.primary} />}
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <TextInput
+              label="Phone Number *"
+              value={contactPhone}
+              onChangeText={setContactPhone}
+              mode="outlined"
+              style={styles.input}
+              outlineStyle={styles.inputOutline}
+              keyboardType="phone-pad"
+              left={<TextInput.Icon icon="phone" color={Colors.primary} />}
+            />
+          </View>
+
+          <Button
+            title="Register Team"
+            onPress={handleSubmit}
+            loading={isLoading}
+            disabled={isLoading}
+            style={styles.submitButton}
+            icon="shield-plus"
           />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Email *</Text>
-          <TextInput
-            style={styles.input}
-            value={contactEmail}
-            onChangeText={setContactEmail}
-            placeholder="Enter email address"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.formGroup}>
-          <Text style={styles.label}>Phone Number *</Text>
-          <TextInput
-            style={styles.input}
-            value={contactPhone}
-            onChangeText={setContactPhone}
-            placeholder="Enter phone number"
-            keyboardType="phone-pad"
-          />
-        </View>
-
-        <Button
-          title="Register Team"
-          onPress={handleSubmit}
-          loading={isLoading}
-          disabled={isLoading}
-        />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -219,103 +231,97 @@ const TeamRegistrationScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.surface,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingBottom: 30,
   },
+  headerSection: {
+    padding: 24,
+    backgroundColor: Colors.primary,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    marginBottom: 16,
+  },
   container: {
     padding: 16,
   },
   title: {
-    fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.primary,
+    color: Colors.background,
     marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: Colors.secondary,
-    marginBottom: 24,
+    color: Colors.background + 'CC', // Adding transparency
   },
-  sectionTitle: {
-    fontSize: 18,
+  formSectionTitle: {
     fontWeight: 'bold',
-    color: Colors.secondary,
-    marginTop: 24,
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  divider: {
     marginBottom: 16,
   },
   formGroup: {
     marginBottom: 16,
   },
   label: {
-    fontSize: 16,
     marginBottom: 8,
-    color: Colors.secondary,
+    color: Colors.text,
   },
   input: {
-    borderWidth: 1,
-    borderColor: Colors.gray,
-    borderRadius: 5,
-    padding: 12,
-    fontSize: 16,
     backgroundColor: Colors.background,
   },
-  selectField: {
+  inputOutline: {
+    borderRadius: 8,
+  },
+  menuButton: {
+    width: '100%',
+    borderColor: Colors.border,
+    borderRadius: 8,
+  },
+  dropdownButton: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.gray,
-    borderRadius: 5,
-    backgroundColor: Colors.background,
-    padding: 12,
     height: 50,
   },
-  selectText: {
-    fontSize: 16,
-    color: Colors.secondary,
+  categoryChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 8,
   },
-  placeholderText: {
-    fontSize: 16,
-    color: Colors.gray,
+  chip: {
+    margin: 4,
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderWidth: 1,
   },
-  modalOverlay: {
+  divisionChips: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  divisionChip: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginHorizontal: 4,
+    backgroundColor: Colors.surface,
+    borderColor: Colors.border,
+    borderWidth: 1,
   },
-  modalContent: {
-    width: '80%',
-    backgroundColor: Colors.background,
-    borderRadius: 10,
-    padding: 20,
-    maxHeight: '70%',
+  selectedChip: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.primary,
-    marginBottom: 15,
-    textAlign: 'center',
+  chipText: {
+    color: Colors.text,
   },
-  modalOption: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.lightGray,
+  selectedChipText: {
+    color: Colors.background,
   },
-  selectedOption: {
-    backgroundColor: Colors.primary + '20', // 20% opacity
-  },
-  modalOptionText: {
-    fontSize: 16,
-    color: Colors.secondary,
-  },
-  selectedOptionText: {
-    color: Colors.primary,
-    fontWeight: 'bold',
+  submitButton: {
+    marginTop: 16,
   },
 });
 
