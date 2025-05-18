@@ -10,8 +10,7 @@
 | L. M. Abu-Basutu       | 223123838   |
 
 ## Project Description
-
-This mobile application has been developed as part of a group assignment for the Namibia Hockey Union (NHU) to digitize and simplify their administrative processes. The application provides functionalities for team and player registration, event entries, and real-time information sharing. It aims to streamline communication and management of hockey events across Namibia.
+The application provides functionalities for team and player registration, event entries, and real-time information sharing. It aims to streamline communication and management of hockey events across Namibia.
 
 **Client Website**: [Namibia Hockey Union](https://namibiahockey.org)
 
